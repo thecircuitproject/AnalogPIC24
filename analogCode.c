@@ -11,75 +11,8 @@
 #define FCY 8000000UL //Internal oscillator frequency.
 #include <libpic30.h>
 #include <string.h>
-#include <math.h>
 volatile unsigned int channel_17;
 volatile unsigned int channel_18;
-volatile unsigned int voltageHR;
-unsigned char *HeartRate;
-unsigned char *Temperature;
-#define E1 PORTEbits.RE0
-#define RS PORTEbits.RE1
-#define E2 PORTEbits.RE2
-#define LED PORTFbits.RF4
-#define LEAD1 PORTBbits.RB5
-#define LEAD2 PORTBbits.RB4
-
-void blinkLED(){
-    int i;
-    for(i = 0;i<3;i++){
-        LED = 1;
-        __delay_ms(200);
-        LED = 0;
-        __delay_ms(200);
-    }
-}
-             //Function for sending values to the write register of LCD
-void lcd_data(unsigned char data)  
-{
-    PORTD = data;
-    RS = 1;
-    __delay_ms(2); //Small delay to turn on RS.
-    E1 = 1;             		
-    __delay_ms(50);
-    E1 = 0;
-}
-
-             //Function for sending values to the command register of LCD
-void lcd_command(unsigned char cmd)  
-{
-    PORTD = cmd;
-    RS = 0;
-    __delay_ms(2);
-    E1 = 1;
-    __delay_ms(50);
-    E1 = 0;
-}
-
-void lcd_string(const unsigned char *str,unsigned char num){
-    unsigned char i;
-    for(i=0;i<num;i++){
-        lcd_data(str[i]);
-    }
-}
-
-void lcd_initialize(){
-    __delay_ms(1500); //Wait for the LCD screen to warm up.
-    
-    lcd_command(0x38); //2 lines and 5x7 matrix (8 bit mode).
-    __delay_ms(50);
-    
-    lcd_command(0x06); //Increment cursor 
-    __delay_ms(20);
-    
-    lcd_command(0x0E); //Display on, cursor blinking.
-    __delay_ms(20);
-    
-     lcd_command(0x01); //Clear display screen.
-    __delay_ms(20);
-    
-    lcd_command(0x0F); //Display on, cursor blinking
-    __delay_ms(20);
-}
 
 void ADC12_Init(void){
     //a) Configure port pins as analog inputs by setting the appropriate bits
@@ -130,58 +63,12 @@ void initializeADCchannel(){
     ADL0CONLbits.SAMP = 1; // Close the sample switch.
 }
 
-static char * ftoa(float x, char *p) {
-    char *s = p; // go to end of buffer
-    uint16_t decimals;  // variable to store the decimals
-    int units;  // variable to store the units (part to left of decimal place)
-    if (x < 0) { // take care of negative numbers
-        decimals = (int)(x * -100) % 100; // make 1000 for 3 decimals etc.
-        units = (int)(-1 * x);
-    } else { // positive numbers
-        decimals = (int)(x * 100) % 100;
-        units = (int)x;
-    }
-
-    *--s = (decimals % 10) + '0';
-    decimals /= 10; // repeat for as many decimal places as you need
-    *--s = (decimals % 10) + '0';
-    *--s = '.';
-    do{
-        *--s = (units % 10) + '0';
-        units /= 10;
-    }while(units>0);
-
-    if (x < 0) *--s = '-'; // unary minus sign for negative numbers
-    return s;
-}
-
 int main(void) {
-    TRISD = 0x00; //Set Port D pins as outputs.
-    TRISF = 0x00;
-    TRISE = 0X00; //Set Port F pins as outputs.
     ADC12_Init(); //12bit adc initialization
-    
-    blinkLED(); //Blink LED three times.
-    lcd_initialize(); //Initialize first half of the LCD.
 
     while(1){
-        char k[4];
-        initializeADCchannel(); //Initialize individual ADC channel.
-        channel_17 = ADRES0; // Read result for the channel 13.
-        //float reading = 14.0*(((float)channel_17*3.3)/(float)4070) - 0.1683;
-        float reading = ((float)channel_17*3.3)/((float)4070);
-
-        Temperature = ftoa(reading,k);
-        lcd_command(0x80);
-        lcd_string(Temperature,4);
-        //lcd_string(" ",1);
-        /*
-        initializeADCchannel(); //Initialize individual ADC channel.
-        channel_18 = ADRES1; // Read result for the channel 14
-        float voltage = ((float)channel_18*3.30)/((float)4070);
-        HeartRate = ftoa(voltage,n);
-        lcd_string(HeartRate,4);
-        */
+        initializeADCchannel();
+        channel_17 = ADRES0; // Read result for the channel 17.
     }
     return 0;
 }   
